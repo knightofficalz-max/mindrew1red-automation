@@ -854,9 +854,9 @@
 // OR use a build step that injects it.
 // Since this is a static HTML, the cleanest approach:
 // Set DASHBOARD_PASSWORD as a secret in GitHub, then in agent.yml add a step:
-//   run: sed -i 's/__DASHBOARD_PASSWORD__/${{ secrets.DASHBOARD_PASSWORD }}/' dashboard.html
+//   run: sed -i 's/Amanaman1234..##/${{ secrets.DASHBOARD_PASSWORD }}/' dashboard.html
 // And the placeholder here:
-const CORRECT_PASSWORD = '__DASHBOARD_PASSWORD__';
+const CORRECT_PASSWORD = 'Amanaman1234..##';
 
 const LOG_URL = 'upload_log.json';   // served from same folder
 
