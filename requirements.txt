@@ -1,0 +1,5 @@
+requests
+openai
+gdown
+google-api-python-client
+google-auth

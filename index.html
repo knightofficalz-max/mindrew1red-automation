@@ -1,0 +1,1146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mind Rewired — Upload Dashboard</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg:        #0a0a0f;
+    --surface:   #111118;
+    --border:    #1e1e2e;
+    --accent:    #7c5cfc;
+    --accent2:   #c084fc;
+    --green:     #22d3a5;
+    --red:       #f87171;
+    --yellow:    #fbbf24;
+    --text:      #e2e8f0;
+    --muted:     #64748b;
+    --card-bg:   #13131c;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── LOGIN SCREEN ── */
+  #login-screen {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(ellipse at 50% 0%, #1a0a3a 0%, var(--bg) 70%);
+  }
+
+  .login-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 48px 40px;
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+  }
+
+  .login-logo {
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 24px;
+    font-size: 28px;
+  }
+
+  .login-card h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+  }
+
+  .login-card p {
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 32px;
+  }
+
+  .input-wrap {
+    position: relative;
+    margin-bottom: 16px;
+  }
+
+  .input-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 48px 14px 16px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .input-wrap input:focus { border-color: var(--accent); }
+
+  .eye-btn {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+  }
+
+  .login-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .login-btn:hover  { opacity: 0.9; }
+  .login-btn:active { transform: scale(0.98); }
+
+  .login-error {
+    color: var(--red);
+    font-size: 13px;
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* ── MAIN DASHBOARD ── */
+  #dashboard { display: none; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .brand-icon {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .brand-name {
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: -0.3px;
+  }
+
+  .brand-name span { color: var(--accent2); }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .refresh-btn, .logout-btn {
+    background: var(--border);
+    border: 1px solid #2a2a3e;
+    border-radius: 8px;
+    padding: 8px 16px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .refresh-btn:hover { background: #1e1e30; }
+  .logout-btn { color: var(--red); border-color: #3a1a1a; background: #1a0f0f; }
+  .logout-btn:hover { background: #2a1010; }
+
+  main { padding: 28px 24px; max-width: 1200px; margin: 0 auto; }
+
+  /* ── STATS GRID ── */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent-bar, var(--accent));
+  }
+
+  .stat-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 10px;
+  }
+
+  .stat-value {
+    font-size: 32px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: -1px;
+    line-height: 1;
+  }
+
+  .stat-sub {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* ── SECTION HEADERS ── */
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+  }
+
+  .section-title {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+  }
+
+  /* ── SLOT BARS ── */
+  .slot-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .slot-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    text-align: center;
+  }
+
+  .slot-time {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 8px;
+  }
+
+  .slot-name {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 12px;
+  }
+
+  .slot-count {
+    font-size: 28px;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .slot-bar-wrap {
+    background: var(--border);
+    border-radius: 4px;
+    height: 4px;
+    margin-top: 10px;
+    overflow: hidden;
+  }
+
+  .slot-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width 0.6s ease;
+  }
+
+  /* ── UPLOAD LOG TABLE ── */
+  .table-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .table-toolbar {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .search-input {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    outline: none;
+    width: 220px;
+  }
+
+  .search-input:focus { border-color: var(--accent); }
+
+  .filter-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+
+  thead th {
+    padding: 12px 20px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+
+  tbody tr {
+    border-bottom: 1px solid #15151f;
+    transition: background 0.15s;
+  }
+
+  tbody tr:hover { background: #16161f; }
+  tbody tr:last-child { border-bottom: none; }
+
+  td { padding: 14px 20px; vertical-align: top; }
+
+  .td-num {
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    font-size: 12px;
+    width: 40px;
+  }
+
+  .td-title a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  .td-title a:hover { color: var(--accent2); }
+
+  .td-title .file-name {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .badge-short  { background: #1a1a3a; color: var(--accent2); }
+  .badge-regular { background: #0f2a1a; color: var(--green); }
+  .badge-morning { background: #2a1f00; color: var(--yellow); }
+  .badge-evening { background: #1a0a2a; color: var(--accent2); }
+  .badge-night   { background: #0a1a2a; color: #60a5fa; }
+
+  .td-date {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+  }
+
+  /* ── DESCRIPTION EDITOR ── */
+  .desc-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+
+  .desc-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .desc-body { padding: 20px; }
+
+  .desc-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    outline: none;
+    width: 100%;
+    margin-bottom: 14px;
+  }
+
+  .desc-preview {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--text);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 200px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .link-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 14px;
+  }
+
+  .link-section h4 {
+    font-size: 13px;
+    color: var(--muted);
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    font-size: 11px;
+  }
+
+  .link-row {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+    align-items: center;
+  }
+
+  .link-row input {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 9px 12px;
+    color: var(--text);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+  }
+
+  .link-row input:focus { border-color: var(--accent); }
+
+  .link-row input::placeholder { color: var(--muted); }
+
+  .link-label {
+    width: 90px;
+    font-size: 12px;
+    color: var(--muted);
+    flex-shrink: 0;
+  }
+
+  .add-link-btn {
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 8px;
+    padding: 8px 14px;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    margin-top: 4px;
+  }
+
+  .add-link-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .build-btn {
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    border: none;
+    border-radius: 10px;
+    padding: 12px 24px;
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    margin-right: 10px;
+  }
+
+  .build-btn:hover { opacity: 0.88; }
+
+  .copy-btn {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 24px;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .copy-btn:hover { background: #1e1e30; }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+
+  .final-desc {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 14px;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'JetBrains Mono', monospace;
+    display: none;
+  }
+
+  /* ── EMPTY STATE ── */
+  .empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+
+  .empty-icon { font-size: 40px; margin-bottom: 12px; }
+  .empty p { font-size: 14px; }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--green);
+    color: #000;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 12px 20px;
+    border-radius: 10px;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.3s;
+    z-index: 9999;
+    pointer-events: none;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  /* ── TIMELINE ── */
+  .timeline-wrap {
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 28px;
+  }
+
+  .timeline-bar-wrap {
+    background: var(--surface);
+    border-radius: 8px;
+    height: 32px;
+    position: relative;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+
+  .timeline-seg {
+    position: absolute;
+    top: 4px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #fff;
+    transition: all 0.4s ease;
+    cursor: default;
+  }
+
+  .tl-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 10px;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<!-- ── LOGIN ── -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🧠</div>
+    <h1>Mind Rewired</h1>
+    <p>Dashboard — Enter password to continue</p>
+
+    <div class="input-wrap">
+      <input type="password" id="pwd-input" placeholder="Enter dashboard password" />
+      <button class="eye-btn" onclick="togglePwd()" id="eye-btn">👁</button>
+    </div>
+
+    <button class="login-btn" onclick="doLogin()">Unlock Dashboard</button>
+    <div class="login-error" id="login-error">❌ Wrong password. Try again.</div>
+  </div>
+</div>
+
+<!-- ── DASHBOARD ── -->
+<div id="dashboard">
+  <header>
+    <div class="header-left">
+      <div class="brand-icon">🧠</div>
+      <div>
+        <div class="brand-name">Mind <span>Rewired</span></div>
+      </div>
+    </div>
+    <div class="header-right">
+      <span id="last-refresh" style="font-size:12px;color:var(--muted)"></span>
+      <button class="refresh-btn" onclick="loadData()">⟳ Refresh</button>
+      <button class="logout-btn" onclick="doLogout()">Logout</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Stats -->
+    <div class="stats-grid" id="stats-grid">
+      <div class="stat-card" style="--accent-bar: var(--accent)">
+        <div class="stat-label">Total Uploaded</div>
+        <div class="stat-value" id="stat-total">—</div>
+        <div class="stat-sub">videos on YouTube</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--accent2)">
+        <div class="stat-label">Shorts</div>
+        <div class="stat-value" id="stat-shorts">—</div>
+        <div class="stat-sub">≤60 sec videos</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--green)">
+        <div class="stat-label">Regular Videos</div>
+        <div class="stat-value" id="stat-regular">—</div>
+        <div class="stat-sub">&gt;60 sec videos</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: var(--yellow)">
+        <div class="stat-label">Today</div>
+        <div class="stat-value" id="stat-today">—</div>
+        <div class="stat-sub">of 3 slots done</div>
+      </div>
+      <div class="stat-card" style="--accent-bar: #60a5fa">
+        <div class="stat-label">This Week</div>
+        <div class="stat-value" id="stat-week">—</div>
+        <div class="stat-sub">uploads in 7 days</div>
+      </div>
+    </div>
+
+    <!-- Slot breakdown -->
+    <div class="section-header">
+      <div class="section-title"><div class="dot"></div> Slot Breakdown</div>
+    </div>
+    <div class="slot-grid">
+      <div class="slot-card">
+        <div class="slot-time">6:30 AM IST</div>
+        <div class="slot-name">🌅 Morning</div>
+        <div class="slot-count" id="slot-morning">0</div>
+        <div class="slot-bar-wrap"><div class="slot-bar-fill" id="bar-morning" style="width:0%"></div></div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-time">6:30 PM IST</div>
+        <div class="slot-name">🌆 Evening</div>
+        <div class="slot-count" id="slot-evening">0</div>
+        <div class="slot-bar-wrap"><div class="slot-bar-fill" id="bar-evening" style="width:0%"></div></div>
+      </div>
+      <div class="slot-card">
+        <div class="slot-time">10:30 PM IST</div>
+        <div class="slot-name">🌙 Night</div>
+        <div class="slot-count" id="slot-night">0</div>
+        <div class="slot-bar-wrap"><div class="slot-bar-fill" id="bar-night" style="width:0%"></div></div>
+      </div>
+    </div>
+
+    <!-- Description Editor -->
+    <div class="section-header">
+      <div class="section-title"><div class="dot" style="background:var(--accent2)"></div> Description Builder</div>
+    </div>
+    <div class="desc-section">
+      <div class="desc-header">
+        <span style="font-size:16px">✏️</span>
+        <span style="font-weight:600;font-size:14px">Build & copy description with custom links</span>
+      </div>
+      <div class="desc-body">
+        <select class="desc-select" id="video-select" onchange="loadVideoDesc()">
+          <option value="">— Select a video —</option>
+        </select>
+
+        <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.6px;">AI Generated Description</div>
+        <div class="desc-preview" id="desc-preview">Select a video above to preview its description.</div>
+
+        <div class="link-section">
+          <h4>🔗 Attach Links to Description</h4>
+          <div id="link-rows">
+            <div class="link-row">
+              <span class="link-label">Instagram</span>
+              <input type="url" placeholder="https://instagram.com/yourhandle" id="link-ig" />
+            </div>
+            <div class="link-row">
+              <span class="link-label">Telegram</span>
+              <input type="url" placeholder="https://t.me/yourchannel" id="link-tg" />
+            </div>
+            <div class="link-row">
+              <span class="link-label">WhatsApp</span>
+              <input type="url" placeholder="https://wa.me/91XXXXXXXXXX" id="link-wa" />
+            </div>
+          </div>
+          <button class="add-link-btn" onclick="addLinkRow()">+ Add custom link</button>
+        </div>
+
+        <button class="build-btn" onclick="buildDescription()">Build Description</button>
+        <button class="copy-btn" id="copy-btn" onclick="copyDesc()">Copy</button>
+
+        <div class="final-desc" id="final-desc"></div>
+      </div>
+    </div>
+
+    <!-- Upload Log Table -->
+    <div class="section-header">
+      <div class="section-title"><div class="dot" style="background:var(--green)"></div> Upload History</div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <input class="search-input" type="text" placeholder="Search title or filename..." oninput="filterTable(this.value)" />
+        <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+        <button class="filter-btn" onclick="setFilter('short',this)">Shorts</button>
+        <button class="filter-btn" onclick="setFilter('regular',this)">Regular</button>
+        <button class="filter-btn" onclick="setFilter('morning',this)">🌅 Morning</button>
+        <button class="filter-btn" onclick="setFilter('evening',this)">🌆 Evening</button>
+        <button class="filter-btn" onclick="setFilter('night',this)">🌙 Night</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Title / Filename</th>
+            <th>Type</th>
+            <th>Slot</th>
+            <th>Duration</th>
+            <th>Uploaded At (IST)</th>
+            <th>Link</th>
+          </tr>
+        </thead>
+        <tbody id="log-tbody"></tbody>
+      </table>
+      <div class="empty" id="empty-state" style="display:none">
+        <div class="empty-icon">📭</div>
+        <p>No uploads found. Run the automation to get started.</p>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── CONFIG ───────────────────────────────────────────────────────────────────
+// Password is set via GitHub Secret DASHBOARD_PASSWORD
+// For local testing, set window.DASHBOARD_PASSWORD or it falls back to 'mindrew1red'
+// In production: replace the value below with your secret at deploy time
+// OR use a build step that injects it.
+// Since this is a static HTML, the cleanest approach:
+// Set DASHBOARD_PASSWORD as a secret in GitHub, then in agent.yml add a step:
+//   run: sed -i 's/__DASHBOARD_PASSWORD__/${{ secrets.DASHBOARD_PASSWORD }}/' dashboard.html
+// And the placeholder here:
+const CORRECT_PASSWORD = '__DASHBOARD_PASSWORD__';
+
+const LOG_URL = 'upload_log.json';   // served from same folder
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let allLogs    = [];
+let activeFilter = 'all';
+let searchQuery  = '';
+let customLinkCount = 0;
+
+// ── AUTH ─────────────────────────────────────────────────────────────────────
+function doLogin() {
+  const val = document.getElementById('pwd-input').value.trim();
+  if (val === CORRECT_PASSWORD) {
+    sessionStorage.setItem('mr_auth', '1');
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display    = 'block';
+    loadData();
+  } else {
+    document.getElementById('login-error').style.display = 'block';
+    document.getElementById('pwd-input').style.borderColor = 'var(--red)';
+  }
+}
+
+function doLogout() {
+  sessionStorage.removeItem('mr_auth');
+  location.reload();
+}
+
+function togglePwd() {
+  const inp = document.getElementById('pwd-input');
+  inp.type = inp.type === 'password' ? 'text' : 'password';
+}
+
+document.getElementById('pwd-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doLogin();
+});
+
+// Check if already logged in this session
+if (sessionStorage.getItem('mr_auth') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display    = 'block';
+  loadData();
+}
+
+// ── LOAD DATA ─────────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const r = await fetch(LOG_URL + '?t=' + Date.now());
+    if (!r.ok) throw new Error('log not found');
+    allLogs = await r.json();
+  } catch(e) {
+    allLogs = [];
+  }
+
+  document.getElementById('last-refresh').textContent =
+    'Updated ' + new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit'});
+
+  renderStats();
+  renderSlots();
+  renderTable();
+  populateSelect();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function renderStats() {
+  const total   = allLogs.length;
+  const shorts  = allLogs.filter(v => v.is_short).length;
+  const regular = total - shorts;
+
+  const now   = new Date();
+  const today = now.toISOString().slice(0,10);
+  const week  = new Date(now - 7*86400000).toISOString();
+
+  const todayCount = allLogs.filter(v => v.uploaded_at?.startsWith(today)).length;
+  const weekCount  = allLogs.filter(v => v.uploaded_at >= week).length;
+
+  setText('stat-total',   total);
+  setText('stat-shorts',  shorts);
+  setText('stat-regular', regular);
+  setText('stat-today',   todayCount);
+  setText('stat-week',    weekCount);
+}
+
+function setText(id, val) {
+  document.getElementById(id).textContent = val;
+}
+
+// ── SLOTS ─────────────────────────────────────────────────────────────────────
+function renderSlots() {
+  const counts = { morning: 0, evening: 0, night: 0 };
+  allLogs.forEach(v => { if (counts[v.slot] !== undefined) counts[v.slot]++; });
+
+  const max = Math.max(...Object.values(counts), 1);
+  ['morning','evening','night'].forEach(s => {
+    document.getElementById('slot-' + s).textContent = counts[s];
+    document.getElementById('bar-' + s).style.width  = (counts[s]/max*100) + '%';
+  });
+}
+
+// ── TABLE ─────────────────────────────────────────────────────────────────────
+function renderTable() {
+  const tbody = document.getElementById('log-tbody');
+  const empty = document.getElementById('empty-state');
+
+  let data = [...allLogs].reverse();
+
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    data = data.filter(v =>
+      v.title?.toLowerCase().includes(q) ||
+      v.file_name?.toLowerCase().includes(q)
+    );
+  }
+
+  if (activeFilter === 'short')   data = data.filter(v => v.is_short);
+  if (activeFilter === 'regular') data = data.filter(v => !v.is_short);
+  if (['morning','evening','night'].includes(activeFilter))
+    data = data.filter(v => v.slot === activeFilter);
+
+  if (!data.length) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  tbody.innerHTML = data.map((v, i) => {
+    const date = v.uploaded_at
+      ? new Date(v.uploaded_at).toLocaleString('en-IN', {
+          day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit',
+          timeZone:'Asia/Kolkata'
+        })
+      : '—';
+
+    const dur = v.duration ? fmtDuration(v.duration) : '—';
+    const typeClass = v.is_short ? 'badge-short' : 'badge-regular';
+    const typeLabel = v.is_short ? '⚡ Short' : '📹 Regular';
+    const slotEmoji = { morning:'🌅', evening:'🌆', night:'🌙' }[v.slot] || '';
+    const slotClass = 'badge-' + (v.slot || 'morning');
+
+    return `<tr data-type="${v.is_short?'short':'regular'}" data-slot="${v.slot||''}">
+      <td class="td-num">${allLogs.length - i}</td>
+      <td class="td-title">
+        <a href="${v.video_url||'#'}" target="_blank">${escHtml(v.title||'Untitled')}</a>
+        <span class="file-name">${escHtml(v.file_name||'')}</span>
+      </td>
+      <td><span class="badge ${typeClass}">${typeLabel}</span></td>
+      <td><span class="badge ${slotClass}">${slotEmoji} ${cap(v.slot)}</span></td>
+      <td style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--muted)">${dur}</td>
+      <td class="td-date">${date} IST</td>
+      <td>
+        ${v.video_url
+          ? `<a href="${v.video_url}" target="_blank" style="color:var(--accent);font-size:12px;text-decoration:none;">▶ Watch</a>`
+          : '—'}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterTable(q) {
+  searchQuery = q;
+  renderTable();
+}
+
+function setFilter(type, btn) {
+  activeFilter = type;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderTable();
+}
+
+// ── DESCRIPTION BUILDER ───────────────────────────────────────────────────────
+function populateSelect() {
+  const sel = document.getElementById('video-select');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Select a video —</option>';
+
+  [...allLogs].reverse().forEach((v, i) => {
+    const opt = document.createElement('option');
+    opt.value = allLogs.length - 1 - i;  // index into allLogs
+    opt.textContent = `${v.file_name} — ${v.title?.slice(0,50) || 'No title'}`;
+    sel.appendChild(opt);
+  });
+
+  if (prev) sel.value = prev;
+}
+
+function loadVideoDesc() {
+  const idx = document.getElementById('video-select').value;
+  const preview = document.getElementById('desc-preview');
+  if (idx === '') {
+    preview.textContent = 'Select a video above to preview its description.';
+    return;
+  }
+  const v = allLogs[parseInt(idx)];
+  preview.textContent = v.description || '(No description saved)';
+}
+
+function addLinkRow() {
+  customLinkCount++;
+  const wrap = document.getElementById('link-rows');
+  const row = document.createElement('div');
+  row.className = 'link-row';
+  row.innerHTML = `
+    <input style="width:90px;flex-shrink:0;background:var(--card-bg);border:1px solid var(--border);border-radius:6px;padding:8px;color:var(--text);font-size:12px;outline:none;"
+           placeholder="Label" id="link-label-${customLinkCount}" />
+    <input type="url" placeholder="https://..." id="link-url-${customLinkCount}"
+           style="flex:1;background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:9px 12px;color:var(--text);font-family:'JetBrains Mono',monospace;font-size:12px;outline:none;" />
+    <button onclick="this.parentElement.remove()"
+            style="background:none;border:none;color:var(--red);font-size:18px;cursor:pointer;padding:0 4px;">×</button>
+  `;
+  wrap.appendChild(row);
+}
+
+function buildDescription() {
+  const idx = document.getElementById('video-select').value;
+  if (idx === '') { showToast('Select a video first', '#f87171'); return; }
+
+  const v = allLogs[parseInt(idx)];
+  let desc = v.description || '';
+
+  // Collect links
+  const links = [];
+  const ig = document.getElementById('link-ig')?.value.trim();
+  const tg = document.getElementById('link-tg')?.value.trim();
+  const wa = document.getElementById('link-wa')?.value.trim();
+  if (ig) links.push(`📸 Instagram → ${ig}`);
+  if (tg) links.push(`✈️ Telegram  → ${tg}`);
+  if (wa) links.push(`💬 WhatsApp  → ${wa}`);
+
+  // Custom links
+  for (let i = 1; i <= customLinkCount; i++) {
+    const lbl = document.getElementById('link-label-'+i)?.value.trim();
+    const url = document.getElementById('link-url-'+i)?.value.trim();
+    if (url) links.push(`🔗 ${lbl || 'Link'} → ${url}`);
+  }
+
+  if (links.length) {
+    desc += '\n\n────────────────────\n';
+    desc += links.join('\n');
+    desc += '\n────────────────────';
+  }
+
+  const box = document.getElementById('final-desc');
+  box.textContent = desc;
+  box.style.display = 'block';
+  showToast('Description built ✓');
+}
+
+function copyDesc() {
+  const text = document.getElementById('final-desc').textContent;
+  if (!text) { showToast('Build description first', '#f87171'); return; }
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.getElementById('copy-btn');
+    btn.textContent = '✓ Copied!';
+    btn.classList.add('copied');
+    showToast('Copied to clipboard ✓');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── HELPERS ───────────────────────────────────────────────────────────────────
+function fmtDuration(secs) {
+  const m = Math.floor(secs / 60);
+  const s = Math.floor(secs % 60);
+  return m > 0 ? `${m}m ${s}s` : `${s}s`;
+}
+
+function escHtml(str) {
+  return (str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function cap(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : '';
+}
+
+function showToast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = color || 'var(--green)';
+  t.style.color = color ? '#fff' : '#000';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+name: YouTube Auto Upload — Mind Rewired
+
+on:
+  schedule:
+    # IST = UTC + 5:30
+    - cron: '0 1 * * *'    # 6:30 AM IST  = 01:00 UTC
+    - cron: '0 13 * * *'   # 6:30 PM IST  = 13:00 UTC
+    - cron: '0 17 * * *'   # 10:30 PM IST = 17:00 UTC
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: 'Slot to simulate (morning / evening / night)'
+        required: false
+        default: 'morning'
+
+jobs:
+  upload:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write   # needed to commit uploaded.txt + upload_log.json
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Detect slot from cron time
+        id: slot
+        run: |
+          HOUR=$(date -u +%H)
+          if   [ "$HOUR" = "01" ]; then echo "SLOT=morning" >> $GITHUB_ENV
+          elif [ "$HOUR" = "13" ]; then echo "SLOT=evening" >> $GITHUB_ENV
+          elif [ "$HOUR" = "17" ]; then echo "SLOT=night"   >> $GITHUB_ENV
+          else
+            # Manual trigger — use input
+            echo "SLOT=${{ github.event.inputs.slot || 'morning' }}" >> $GITHUB_ENV
+          fi
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install ffmpeg
+        run: sudo apt-get install -y ffmpeg
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run upload agent
+        env:
+          YT_CLIENT_ID:     ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+          HF_TOKEN:         ${{ secrets.HF_TOKEN }}
+          DRIVE_FOLDER_ID:  ${{ secrets.DRIVE_FOLDER_ID }}
+          DRIVE_API_KEY:    ${{ secrets.DRIVE_API_KEY }}
+          SLOT:             ${{ env.SLOT }}
+        run: python main.py
+
+      - name: Inject dashboard password into HTML
+        run: |
+          sed -i "s/__DASHBOARD_PASSWORD__/${{ secrets.DASHBOARD_PASSWORD }}/g" index.html
+
+      - name: Commit tracking files back to repo
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add uploaded.txt upload_log.json index.html
+          git diff --staged --quiet || git commit -m "chore: upload [${{ env.SLOT }}] [skip ci]"
+          git push
