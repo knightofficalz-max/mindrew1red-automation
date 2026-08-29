@@ -185,5 +185,16 @@
     "is_short": true,
     "duration": 42.2,
     "uploaded_at": "2026-08-29T00:50:55.876428Z"
+  },
+  {
+    "file_id": "1Idl3mnPItNh_NoN2XT3uFGDXuXz39q27",
+    "file_name": "Copy of IG-MZ (26).mp4",
+    "video_id": "ZSYDasgI1ME",
+    "video_url": "https://youtu.be/ZSYDasgI1ME",
+    "title": "How to Rewire Your Brain for Unstoppable Confidence (Neuroscience-Backed)",
+    "slot": "morning",
+    "is_short": true,
+    "duration": 31.5,
+    "uploaded_at": "2026-08-29T07:36:34.872437Z"
   }
 ]
