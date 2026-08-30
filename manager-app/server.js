@@ -3,7 +3,7 @@ const express    = require('express');
 const session    = require('express-session');
 const cors       = require('cors');
 const path       = require('path');
-const { createClient } = require('@libsql/client');
+const { createClient } = require('@libsql/client/web');
 const { google } = require('googleapis');
 
 const app  = express();
