@@ -1,0 +1,19 @@
+{
+  "name": "mindrewired-manager",
+  "version": "1.0.0",
+  "description": "Mind Rewired YouTube Manager",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "express-session": "^1.17.3",
+    "@libsql/client": "^0.6.0",
+    "googleapis": "^140.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "bcryptjs": "^2.4.3"
+  }
+}

@@ -1,0 +1,20 @@
+[package]
+name = "mindrewired-manager"
+version = "1.0.0"
+description = "Mind Rewired YouTube Manager"
+
+[[module]]
+name = "mindrewired-manager"
+source = "."
+abi = "wasi"
+
+[module.env]
+PORT = "3000"
+
+[[command]]
+name = "start"
+module = "mindrewired-manager"
+runner = "https://webc.org/runner/wasi"
+
+[command.annotations.wasi]
+main-args = ["node", "server.js"]
