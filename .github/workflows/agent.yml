@@ -2,23 +2,20 @@ name: YouTube Auto Upload — Mind Rewired
 
 on:
   schedule:
-    # IST = UTC + 5:30
-    - cron: '0 1 * * *'    # 6:30 AM IST  = 01:00 UTC
-    - cron: '0 13 * * *'   # 6:30 PM IST  = 13:00 UTC
+    - cron: '0 1 * * *'    # 6:30 AM IST = 01:00 UTC
     - cron: '0 17 * * *'   # 10:30 PM IST = 17:00 UTC
   workflow_dispatch:
     inputs:
       slot:
-        description: 'Slot to simulate (morning / evening / night)'
+        description: 'Slot (morning / night)'
         required: false
         default: 'morning'
 
 jobs:
   upload:
     runs-on: ubuntu-latest
-
     permissions:
-      contents: write   # needed to commit uploaded.txt + upload_log.json
+      contents: write
 
     steps:
       - name: Checkout repo
@@ -29,16 +26,13 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Detect slot from cron time
+      - name: Detect slot
         id: slot
         run: |
           HOUR=$(date -u +%H)
           if   [ "$HOUR" = "01" ]; then echo "SLOT=morning" >> $GITHUB_ENV
-          elif [ "$HOUR" = "13" ]; then echo "SLOT=evening" >> $GITHUB_ENV
           elif [ "$HOUR" = "17" ]; then echo "SLOT=night"   >> $GITHUB_ENV
-          else
-            # Manual trigger — use input
-            echo "SLOT=${{ github.event.inputs.slot || 'morning' }}" >> $GITHUB_ENV
+          else echo "SLOT=${{ github.event.inputs.slot || 'morning' }}" >> $GITHUB_ENV
           fi
 
       - name: Set up Python 3.11
@@ -60,17 +54,15 @@ jobs:
           HF_TOKEN:         ${{ secrets.HF_TOKEN }}
           DRIVE_FOLDER_ID:  ${{ secrets.DRIVE_FOLDER_ID }}
           DRIVE_API_KEY:    ${{ secrets.DRIVE_API_KEY }}
+          MANAGER_URL:      ${{ secrets.MANAGER_URL }}
+          API_SECRET:       ${{ secrets.API_SECRET }}
           SLOT:             ${{ env.SLOT }}
         run: python main.py
 
-      - name: Inject dashboard password into HTML
-        run: |
-          sed -i "s/__DASHBOARD_PASSWORD__/${{ secrets.DASHBOARD_PASSWORD }}/g" index.html
-
-      - name: Commit tracking files back to repo
+      - name: Commit uploaded.txt
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add uploaded.txt upload_log.json index.html
+          git add uploaded.txt
           git diff --staged --quiet || git commit -m "chore: upload [${{ env.SLOT }}] [skip ci]"
           git push
