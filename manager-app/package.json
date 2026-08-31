@@ -10,7 +10,7 @@
   "dependencies": {
     "express": "^4.18.2",
     "express-session": "^1.17.3",
-    "@libsql/client": "npm:@libsql/client-web@^0.14.0",
+    "@libsql/client": "@libsql/client": "^0.6.0"
     "googleapis": "^140.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
