@@ -9,7 +9,7 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-# ── Secrets ───────────────────────────────────────────────────────────────────
+# ── Secrets ────────────────────────────────────────────────────────────────
 YT_CLIENT_ID     = os.environ['YT_CLIENT_ID']
 YT_CLIENT_SECRET = os.environ['YT_CLIENT_SECRET']
 YT_REFRESH_TOKEN = os.environ['YT_REFRESH_TOKEN']
@@ -17,15 +17,15 @@ HF_TOKEN         = os.environ['HF_TOKEN']
 DRIVE_FOLDER_ID  = os.environ['DRIVE_FOLDER_ID']
 DRIVE_API_KEY    = os.environ['DRIVE_API_KEY']
 SLOT             = os.environ['SLOT']
-MANAGER_URL      = os.environ.get('MANAGER_URL', '')   # Wasmer app URL
-API_SECRET       = os.environ.get('API_SECRET', '')    # shared secret
+MANAGER_URL      = os.environ.get('MANAGER_URL', '')
+API_SECRET       = os.environ.get('API_SECRET', '')
 
-UPLOADED_FILE    = 'uploaded.txt'
-FONT_PATH        = 'font.otf'
-LOGO_PATH        = 'logo.png'
-SHORTS_MAX_SECS  = 60
+UPLOADED_FILE   = 'uploaded.txt'
+FONT_PATH       = 'font.otf'
+LOGO_PATH       = 'logo.png'
+SHORTS_MAX_SECS = 60
 
-# ── 1. Load uploaded ──────────────────────────────────────────────────────────
+# ── 1. Load uploaded ────────────────────────────────────────────────────────
 if os.path.exists(UPLOADED_FILE):
     with open(UPLOADED_FILE, 'r') as f:
         uploaded = set(line.strip() for line in f if line.strip())
@@ -34,20 +34,21 @@ else:
 
 print(f"Slot: {SLOT} | Already uploaded: {len(uploaded)}")
 
-# ── 2. Fetch settings from Manager (social links, prompt) ─────────────────────
+# ── 2. Fetch settings from Manager ─────────────────────────────────────────
 settings = {}
 if MANAGER_URL:
     try:
-        r = requests.get(f"{MANAGER_URL}/api/settings", headers={'x-api-secret': API_SECRET}, timeout=10)
+        r = requests.get(f"{MANAGER_URL}/api/settings",
+                         headers={'x-api-secret': API_SECRET}, timeout=10)
         if r.ok:
             settings = r.json()
             print("✅ Settings loaded from manager")
     except Exception as e:
-        print(f"⚠️ Could not fetch settings: {e}")
+        print(f"⚠ Could not fetch settings: {e}")
 
 desc_prompt_extra = settings.get('desc_prompt', '')
 
-# ── 3. List ALL Drive files (pagination) ──────────────────────────────────────
+# ── 3. List ALL Drive files (pagination) ────────────────────────────────────
 def list_all_drive_files(folder_id, api_key):
     all_files  = []
     page_token = None
@@ -60,7 +61,7 @@ def list_all_drive_files(folder_id, api_key):
         }
         if page_token:
             params['pageToken'] = page_token
-        resp = requests.get("https://www.googleapis.com/drive/v3/files", params=params).json()
+        resp  = requests.get("https://www.googleapis.com/drive/v3/files", params=params).json()
         batch = resp.get('files', [])
         all_files.extend(batch)
         print(f"  Fetched {len(batch)} items (total: {len(all_files)})")
@@ -75,7 +76,7 @@ if not all_files:
     print("No files found. Exiting.")
     exit()
 
-# ── 4. Resolve shortcuts + filter mp4 ────────────────────────────────────────
+# ── 4. Resolve shortcuts + filter mp4 ──────────────────────────────────────
 def resolve_file(f):
     mime = f.get('mimeType', '')
     if 'video/' in mime:
@@ -93,9 +94,9 @@ def resolve_file(f):
             return target_id, target_resp.get('name', f['name']), target_mime
     return None
 
-# ── 5. Numeric sort — supports "Copy of IG-MZ (N).mp4" and "N.mp4" ───────────
+# ── 5. Numeric sort — supports "Copy of IG-MZ (N).mp4" and "N.mp4" ─────────
 def numeric_key(f):
-    name = f.get('name', '')
+    name  = f.get('name', '')
     match = re.search(r'\((\d+)\)', name)
     if match:
         return int(match.group(1))
@@ -106,7 +107,7 @@ def numeric_key(f):
 
 all_files_sorted = sorted(all_files, key=numeric_key)
 
-# ── 6. Find next video ────────────────────────────────────────────────────────
+# ── 6. Find next video ──────────────────────────────────────────────────────
 target = download_id = video_name = None
 for f in all_files_sorted:
     if f['id'] in uploaded:
@@ -123,16 +124,16 @@ if not target:
 
 print(f"Next video: {video_name}")
 
-# ── 7. Download ───────────────────────────────────────────────────────────────
+# ── 7. Download ─────────────────────────────────────────────────────────────
 safe_name  = re.sub(r'[^\w\-_\. ]', '_', video_name)
 local_path = f"/tmp/{safe_name}"
-print(f"Downloading...")
+print("Downloading...")
 gdown.download(id=download_id, output=local_path, quiet=False)
 if not os.path.exists(local_path):
     print("Download failed. Exiting.")
     exit(1)
 
-# ── 8. Detect duration ────────────────────────────────────────────────────────
+# ── 8. Detect duration ──────────────────────────────────────────────────────
 probe = subprocess.run(
     ['ffprobe', '-v', 'error', '-show_entries', 'format=duration',
      '-of', 'default=noprint_wrappers=1:nokey=1', local_path],
@@ -144,14 +145,14 @@ is_short     = duration <= SHORTS_MAX_SECS
 video_type   = "YouTube Short" if is_short else "Regular YouTube video"
 print(f"Duration: {duration:.1f}s → {video_type}")
 
-# ── 9. ffmpeg overlay — logo + glass text ────────────────────────────────────
+# ── 9. ffmpeg overlay — logo (top-right) + frosted glass text (bottom-center)
 overlaid_path = f"/tmp/overlaid_{safe_name}"
-
-has_logo = os.path.exists(LOGO_PATH)
-has_font = os.path.exists(FONT_PATH)
+has_logo      = os.path.exists(LOGO_PATH)
+has_font      = os.path.exists(FONT_PATH)
 
 if has_logo and has_font:
-    print("Adding logo + glass text overlay...")
+    print("Adding logo + frosted glass text overlay...")
+
     # Get video dimensions
     probe2 = subprocess.run(
         ['ffprobe', '-v', 'error', '-select_streams', 'v:0',
@@ -159,35 +160,61 @@ if has_logo and has_font:
          '-of', 'csv=s=x:p=0', local_path],
         capture_output=True, text=True
     )
-    dims = probe2.stdout.strip().split('x')
-    vid_w = int(dims[0]) if len(dims)==2 else 1080
-    vid_h = int(dims[1]) if len(dims)==2 else 1920
+    dims  = probe2.stdout.strip().split('x')
+    vid_w = int(dims[0]) if len(dims) == 2 else 1080
+    vid_h = int(dims[1]) if len(dims) == 2 else 1920
 
-    logo_size   = int(vid_w * 0.12)   # 12% of width
-    logo_x      = vid_w - logo_size - 20
-    logo_y      = 20
-    text_y      = vid_h - 80
-    font_size   = int(vid_w * 0.045)
-    text        = "@MindRewired009"
+    logo_size = int(vid_w * 0.13)          # 13% of width
+    logo_x    = vid_w - logo_size - 24
+    logo_y    = 24
+    font_size = int(vid_w * 0.048)
+    text      = "@MindRewired009"
 
-    # Glass box behind text
-    glass_h  = int(font_size * 1.8)
-    glass_w  = int(vid_w * 0.65)
-    glass_x  = int((vid_w - glass_w) / 2)
-    glass_y  = text_y - int(glass_h * 0.3)
+    # Glass box dimensions — wider & taller for better frosted look
+    glass_h = int(font_size * 2.2)
+    glass_w = int(vid_w * 0.72)
+    glass_x = int((vid_w - glass_w) / 2)
+    glass_y = vid_h - glass_h - 40
+    text_y  = glass_y + int((glass_h - font_size) / 2)
 
+    # Filter complex:
+    # Step 1 — crop the glass region from base video
+    # Step 2 — blur that crop (frosted effect)
+    # Step 3 — overlay blurred crop back onto video
+    # Step 4 — add semi-transparent dark tint on top of blurred area
+    # Step 5 — overlay logo (top-right)
+    # Step 6 — draw text
     vf = (
+        # Scale base video
         f"[0:v]scale={vid_w}:{vid_h}[base];"
-        # Logo: scale + circle mask
+
+        # Crop the glass region from base for blur
+        f"[base]crop={glass_w}:{glass_h}:{glass_x}:{glass_y}[cropped];"
+
+        # Blur the cropped region heavily (frosted glass effect)
+        f"[cropped]gblur=sigma=18[blurred];"
+
+        # Overlay blurred region back onto base video
+        f"[base][blurred]overlay={glass_x}:{glass_y}[with_blur];"
+
+        # Add dark semi-transparent tint over glass area
+        f"[with_blur]drawbox=x={glass_x}:y={glass_y}:w={glass_w}:h={glass_h}:"
+        f"color=black@0.40:t=fill[with_tint];"
+
+        # Add white border around glass box
+        f"[with_tint]drawbox=x={glass_x}:y={glass_y}:w={glass_w}:h={glass_h}:"
+        f"color=white@0.25:t=3[with_border];"
+
+        # Scale logo
         f"[1:v]scale={logo_size}:{logo_size}[logo_scaled];"
-        # Glass box
-        f"[base]drawbox=x={glass_x}:y={glass_y}:w={glass_w}:h={glass_h}:"
-        f"color=white@0.15:t=fill[with_glass];"
-        # Logo overlay
-        f"[with_glass][logo_scaled]overlay={logo_x}:{logo_y}[with_logo];"
-        # Text overlay
+
+        # Overlay logo top-right
+        f"[with_border][logo_scaled]overlay={logo_x}:{logo_y}[with_logo];"
+
+        # Draw channel handle text centered
         f"[with_logo]drawtext=text='{text}':fontfile={FONT_PATH}:"
-        f"fontsize={font_size}:fontcolor=white:shadowcolor=black@0.6:shadowx=2:shadowy=2:"
+        f"fontsize={font_size}:fontcolor=white@0.95:"
+        f"shadowcolor=black@0.7:shadowx=2:shadowy=2:"
         f"x=(w-text_w)/2:y={text_y}[out]"
     )
 
@@ -204,20 +231,20 @@ if has_logo and has_font:
     ], capture_output=True, text=True)
 
     if result.returncode == 0 and os.path.exists(overlaid_path):
-        print("✅ Overlay added!")
+        print("✅ Frosted glass overlay added!")
         upload_path = overlaid_path
     else:
-        print(f"⚠️ Overlay failed: {result.stderr[-300:]}")
+        print(f"⚠ Overlay failed: {result.stderr[-500:]}")
         upload_path = local_path
 else:
-    print("⚠️ Logo/font not found — skipping overlay")
+    print("⚠ Logo/font not found — skipping overlay")
     upload_path = local_path
 
-# ── 10. AI Metadata ───────────────────────────────────────────────────────────
+# ── 10. AI Metadata ─────────────────────────────────────────────────────────
 print("Generating metadata with DeepSeek AI...")
 ai = OpenAI(base_url="https://router.huggingface.co/v1", api_key=HF_TOKEN)
 
-shorts_rule = "- Add #Shorts as the very last hashtag" if is_short else ""
+shorts_rule   = "- Add #Shorts as the very last hashtag" if is_short else ""
 custom_prompt = f"\n\nAdditional instructions:\n{desc_prompt_extra}" if desc_prompt_extra else ""
 
 prompt = f"""You are a YouTube SEO expert for "Mind Rewired" — a motivational psychology channel.
@@ -258,7 +285,7 @@ if is_short and '#Shorts' not in description:
 
 print(f"Title: {title}")
 
-# ── 11. YouTube OAuth ─────────────────────────────────────────────────────────
+# ── 11. YouTube OAuth ───────────────────────────────────────────────────────
 print("Authenticating YouTube...")
 token_resp = requests.post('https://oauth2.googleapis.com/token', data={
     'client_id':     YT_CLIENT_ID,
@@ -274,7 +301,7 @@ if 'access_token' not in token_resp:
 creds   = Credentials(token=token_resp['access_token'])
 youtube = build('youtube', 'v3', credentials=creds)
 
-# ── 12. Upload to YouTube ─────────────────────────────────────────────────────
+# ── 12. Upload to YouTube ───────────────────────────────────────────────────
 print("Uploading to YouTube...")
 body = {
     'snippet': {
@@ -283,7 +310,7 @@ body = {
         'tags':        tags,
         'categoryId':  '26'
     },
-    'status': { 'privacyStatus': 'public' }
+    'status': {'privacyStatus': 'public'}
 }
 
 insert_request = youtube.videos().insert(
@@ -302,7 +329,7 @@ video_id  = response['id']
 video_url = f"https://youtu.be/{video_id}"
 print(f"✅ Upload complete! {video_url}")
 
-# ── 13. Log to Turso via Manager API ─────────────────────────────────────────
+# ── 13. Log to Manager API ──────────────────────────────────────────────────
 if MANAGER_URL:
     try:
         log_data = {
@@ -323,11 +350,11 @@ if MANAGER_URL:
             headers={'x-api-secret': API_SECRET},
             timeout=15
         )
-        print(f"✅ Logged to Turso: {r.status_code}")
+        print(f"✅ Logged to manager: {r.status_code}")
     except Exception as e:
-        print(f"⚠️ Turso log failed: {e}")
+        print(f"⚠ Manager log failed: {e}")
 
-# ── 14. Mark as done ─────────────────────────────────────────────────────────
+# ── 14. Mark as done ────────────────────────────────────────────────────────
 uploaded.add(target['id'])
 with open(UPLOADED_FILE, 'w') as f:
     f.write('\n'.join(uploaded) + '\n')
