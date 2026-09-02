@@ -2,18 +2,20 @@ name: YouTube Auto Upload — Mind Rewired
 
 on:
   schedule:
-    - cron: '0 1 * * *'    # 6:30 AM IST = 01:00 UTC
+    # IST = UTC + 5:30
+    - cron: '0 1 * * *'    # 6:30 AM IST  = 01:00 UTC
     - cron: '0 17 * * *'   # 10:30 PM IST = 17:00 UTC
   workflow_dispatch:
     inputs:
       slot:
-        description: 'Slot (morning / night)'
+        description: 'Slot to simulate (morning / night)'
         required: false
         default: 'morning'
 
 jobs:
   upload:
     runs-on: ubuntu-latest
+
     permissions:
       contents: write
 
@@ -26,13 +28,13 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Detect slot
-        id: slot
+      - name: Detect slot from cron time
         run: |
           HOUR=$(date -u +%H)
           if   [ "$HOUR" = "01" ]; then echo "SLOT=morning" >> $GITHUB_ENV
           elif [ "$HOUR" = "17" ]; then echo "SLOT=night"   >> $GITHUB_ENV
-          else echo "SLOT=${{ github.event.inputs.slot || 'morning' }}" >> $GITHUB_ENV
+          else
+            echo "SLOT=${{ github.event.inputs.slot || 'morning' }}" >> $GITHUB_ENV
           fi
 
       - name: Set up Python 3.11
@@ -41,7 +43,9 @@ jobs:
           python-version: '3.11'
 
       - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg)
 
       - name: Install Python dependencies
         run: pip install -r requirements.txt
@@ -59,7 +63,7 @@ jobs:
           SLOT:             ${{ env.SLOT }}
         run: python main.py
 
-      - name: Commit uploaded.txt
+      - name: Commit uploaded.txt back to repo
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
