@@ -160,9 +160,13 @@ if has_logo and has_font:
          '-of', 'csv=s=x:p=0', local_path],
         capture_output=True, text=True
     )
-    dims  = probe2.stdout.strip().split('x')
-    vid_w = int(dims[0]) if len(dims) == 2 else 1080
-    vid_h = int(dims[1]) if len(dims) == 2 else 1920
+    dims = probe2.stdout.strip().split('x')
+    raw_w = int(dims[0]) if len(dims) == 2 else 1080
+    raw_h = int(dims[1]) if len(dims) == 2 else 1920
+
+    # H.264/filter operations are more reliable with even dimensions.
+    vid_w = max(2, raw_w - (raw_w % 2))
+    vid_h = max(2, raw_h - (raw_h % 2))
 
     logo_size = int(vid_w * 0.13)          # 13% of width
     logo_x    = vid_w - logo_size - 24
@@ -171,11 +175,11 @@ if has_logo and has_font:
     text      = "@MindRewired009"
 
     # Glass box dimensions — wider & taller for better frosted look
-    glass_h = int(font_size * 2.2)
-    glass_w = int(vid_w * 0.72)
-    glass_x = int((vid_w - glass_w) / 2)
-    glass_y = vid_h - glass_h - 40
-    text_y  = glass_y + int((glass_h - font_size) / 2)
+    glass_h = max(2, int(font_size * 2.2) // 2 * 2)
+    glass_w = max(2, int(vid_w * 0.72) // 2 * 2)
+    glass_x = max(0, int((vid_w - glass_w) / 2))
+    glass_y = max(0, vid_h - glass_h - 40)
+    text_y  = glass_y + max(0, int((glass_h - font_size) / 2))
 
     # Filter complex:
     # Step 1 — crop the glass region from base video
@@ -184,34 +188,20 @@ if has_logo and has_font:
     # Step 4 — add semi-transparent dark tint on top of blurred area
     # Step 5 — overlay logo (top-right)
     # Step 6 — draw text
+    # Use an explicit split/overlay chain.  The logo input is looped so it
+    # always provides frames for the whole video; this avoids FFmpeg
+    # "matches no streams" failures with still PNG inputs.
     vf = (
-        # Scale base video
-        f"[0:v]scale={vid_w}:{vid_h}[base];"
-
-        # Crop the glass region from base for blur
-        f"[base]crop={glass_w}:{glass_h}:{glass_x}:{glass_y}[cropped];"
-
-        # Blur the cropped region heavily (frosted glass effect)
-        f"[cropped]gblur=sigma=18[blurred];"
-
-        # Overlay blurred region back onto base video
-        f"[base][blurred]overlay={glass_x}:{glass_y}[with_blur];"
-
-        # Add dark semi-transparent tint over glass area
+        f"[0:v]scale={vid_w}:{vid_h},split=2[base][blur_src];"
+        f"[blur_src]crop={glass_w}:{glass_h}:{glass_x}:{glass_y},"
+        f"gblur=sigma=18[blurred];"
+        f"[base][blurred]overlay={glass_x}:{glass_y}:shortest=0[with_blur];"
         f"[with_blur]drawbox=x={glass_x}:y={glass_y}:w={glass_w}:h={glass_h}:"
         f"color=black@0.40:t=fill[with_tint];"
-
-        # Add white border around glass box
         f"[with_tint]drawbox=x={glass_x}:y={glass_y}:w={glass_w}:h={glass_h}:"
         f"color=white@0.25:t=3[with_border];"
-
-        # Scale logo
-        f"[1:v]scale={logo_size}:{logo_size}[logo_scaled];"
-
-        # Overlay logo top-right
-        f"[with_border][logo_scaled]overlay={logo_x}:{logo_y}[with_logo];"
-
-        # Draw channel handle text centered
+        f"[1:v]format=rgba,scale={logo_size}:{logo_size}[logo_scaled];"
+        f"[with_border][logo_scaled]overlay={logo_x}:{logo_y}:eof_action=repeat[with_logo];"
         f"[with_logo]drawtext=text='{text}':fontfile={FONT_PATH}:"
         f"fontsize={font_size}:fontcolor=white@0.95:"
         f"shadowcolor=black@0.7:shadowx=2:shadowy=2:"
@@ -221,12 +211,14 @@ if has_logo and has_font:
     result = subprocess.run([
         'ffmpeg', '-y',
         '-i', local_path,
-        '-i', LOGO_PATH,
+        '-loop', '1', '-i', LOGO_PATH,
         '-filter_complex', vf,
         '-map', '[out]',
         '-map', '0:a?',
         '-c:v', 'libx264', '-crf', '23', '-preset', 'fast',
+        '-pix_fmt', 'yuv420p',
         '-c:a', 'aac',
+        '-shortest',
         overlaid_path
     ], capture_output=True, text=True)
 
@@ -287,15 +279,32 @@ print(f"Title: {title}")
 
 # ── 11. YouTube OAuth ───────────────────────────────────────────────────────
 print("Authenticating YouTube...")
-token_resp = requests.post('https://oauth2.googleapis.com/token', data={
-    'client_id':     YT_CLIENT_ID,
-    'client_secret': YT_CLIENT_SECRET,
-    'refresh_token': YT_REFRESH_TOKEN,
-    'grant_type':    'refresh_token'
-}).json()
+token_request = requests.post(
+    'https://oauth2.googleapis.com/token',
+    data={
+        'client_id': YT_CLIENT_ID,
+        'client_secret': YT_CLIENT_SECRET,
+        'refresh_token': YT_REFRESH_TOKEN,
+        'grant_type': 'refresh_token'
+    },
+    timeout=20
+)
+
+try:
+    token_resp = token_request.json()
+except ValueError:
+    token_resp = {
+        'error': 'invalid_response',
+        'raw': token_request.text[:500]
+    }
 
 if 'access_token' not in token_resp:
-    print(f"Token error: {token_resp}")
+    print(f"❌ YouTube OAuth token refresh failed: {token_resp}")
+
+    if token_resp.get('error') == 'invalid_grant':
+        print("❌ YT_REFRESH_TOKEN is expired, revoked, or invalid.")
+        print("Generate a NEW YouTube OAuth refresh token and replace the GitHub Actions secret.")
+        print("This cannot be fixed by changing the upload code.")
     exit(1)
 
 creds   = Credentials(token=token_resp['access_token'])
